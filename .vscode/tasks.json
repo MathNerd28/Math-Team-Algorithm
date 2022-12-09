@@ -1,0 +1,26 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "gradle",
+            "id": "/Users/xbhalla/Library/Mobile Documents/com~apple~CloudDocs/Developer/Java/Math Team AlgorithmbuildMath Team Algorithm",
+            "script": "build",
+            "description": "Assembles and tests this project.",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "project": "Math Team Algorithm",
+            "buildFile": "/Users/xbhalla/Library/Mobile Documents/com~apple~CloudDocs/Developer/Java/Math Team Algorithm/build.gradle",
+            "rootProject": "Math Team Algorithm",
+            "projectFolder": "/Users/xbhalla/Library/Mobile Documents/com~apple~CloudDocs/Developer/Java/Math Team Algorithm",
+            "workspaceFolder": "/Users/xbhalla/Library/Mobile Documents/com~apple~CloudDocs/Developer/Java/Math Team Algorithm",
+            "args": "",
+            "javaDebug": false,
+            "problemMatcher": [
+                "$gradle"
+            ],
+            "label": "gradle: build"
+        }
+    ]
+}
