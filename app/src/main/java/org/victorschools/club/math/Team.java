@@ -12,8 +12,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 public class Team {
-    static final Comparator<Student> BIASES_FIRST = (
-            Student s1, Student s2) -> {
+    static final Comparator<Student> BIASES_FIRST = (Student s1,
+            Student s2) -> {
         int compare = Integer.compare(s2.getBiasCount(), s1.getBiasCount());
         return compare == 0
                 ? TeamGenerator.Strategy.Sort.NAME_COMP.compare(s1, s2)
@@ -52,6 +52,58 @@ public class Team {
 
     public double getProgress() {
         return this.progress;
+    }
+
+    public void fastAssign() {
+        int product = students.length * args.getCategoriesPerStudent();
+        int minStudentsPerCat = product / args.getCategoryCount();
+        int maxCount = product % args.getCategoryCount();
+        if (maxCount == 0) {
+            maxCount = args.getCategoryCount();
+        }
+        AssignedStudent[] working = this.students.clone();
+        this.isFinished = false;
+        int[] catScores = new int[args.getCategoryCount()];
+        for (AssignedStudent student : this.students) {
+            for (int catID = 0; catID < catScores.length; catID++) {
+                catScores[catID] += student.getRanking(catID);
+            }
+        }
+        for (int i = 0; i < catScores.length; i++) {
+            // Find max index, favor later scores
+            int maxIndex = catScores.length - 1;
+            for (int j = maxIndex - 1; j >= 0; j--) {
+                if (catScores[j] >= catScores[maxIndex]) {
+                    maxIndex = j;
+                }
+            }
+            int maxIndexCopy = maxIndex;
+            // Reset category (no duplicates)
+            catScores[maxIndex] = Integer.MIN_VALUE;
+            // Sort students in order by this category
+            Arrays.sort(working,
+                    (s1, s2) -> (s1 == null || s2 == null) ? 0
+                            : (s2.getRanking(maxIndexCopy)
+                                    - s1.getRanking(maxIndexCopy)));
+            // Assign the ones who like the worst category best
+            int count = 0;
+            int requestedCount = (i < maxCount) ? minStudentsPerCat
+                    : minStudentsPerCat + 1;
+            for (int j = 0; j < working.length; j++) {
+                if (working[j] == null) {
+                    continue;
+                }
+                working[j].assign(maxIndexCopy);
+                if (working[j].getAssignmentCount() >= this.catsPerStudent) {
+                    working[j] = null;
+                }
+                count++;
+                if (count >= requestedCount) {
+                    break;
+                }
+            }
+        }
+        this.score = score(this.students);
     }
 
     public void assignOptimally() {
@@ -150,12 +202,12 @@ public class Team {
         private final int[]             workingCounts;
         private final int               catsPerStudent;
         private final int               maxStudentsPerCat;
-        // catCount - catsPerStudent
-        private final int     catDiff;
-        private final long    maxBranch;
-        private final long    choose;
-        private long          bestScore;
-        private volatile long currentBranch;
+        private final int               minStudentsPerCat;
+        private final int               catDiff;
+        private final long              maxBranch;
+        private final long              choose;
+        private long                    bestScore;
+        private volatile long           currentBranch;
 
         Assigner(int[] initialCategories) {
             this.workingCounts = new int[Team.this.scores.getCatCount()];
@@ -174,6 +226,7 @@ public class Team {
             this.catDiff = Team.this.catDiff;
             this.catsPerStudent = Team.this.catsPerStudent;
             this.maxStudentsPerCat = args.getMaxStudentsPerCategory();
+            this.minStudentsPerCat = args.getMinStudentsPerCategory();
             this.bestScore = Long.MAX_VALUE;
             this.choose = choose(this.workingCounts.length,
                     this.catsPerStudent);
@@ -181,7 +234,7 @@ public class Team {
         }
 
         @Override
-        public AssignedStudent[] call() throws Exception {
+        public AssignedStudent[] call() {
             recursive(1, 0, 0);
             return this.best;
         }
@@ -245,7 +298,7 @@ public class Team {
 
         private void checkScore() {
             long score = calculateScore();
-            if (score < this.bestScore) {
+            if (score < this.bestScore && isCountsValid()) {
                 this.bestScore = score;
                 for (int i = 0; i < this.working.length; i++) {
                     this.best[i] = this.working[i].clone();
@@ -268,6 +321,15 @@ public class Team {
 
         private boolean isScoreBetter(int numStudents) {
             return this.bestScore > calculateScore(numStudents);
+        }
+
+        private boolean isCountsValid() {
+            for (int i = 0; i < this.workingCounts.length; i++) {
+                if (this.workingCounts[i] < this.minStudentsPerCat) {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 

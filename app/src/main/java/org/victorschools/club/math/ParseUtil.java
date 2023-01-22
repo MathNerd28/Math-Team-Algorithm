@@ -24,9 +24,11 @@ public class ParseUtil {
             int[] rankings = new int[args.getCategoryCount()];
             for (int c = 0; c < rankings.length; c++) {
                 rankings[c] = parseInt(
-                        line.get(args.getRankingStartColumn() + c));
+                        line.get(args.getRankingStartColumn() + c)
+                            .trim());
             }
-            String bias = line.get(args.getBiasColumn());
+            String bias = line.get(args.getBiasColumn())
+                              .trim();
             int[] biases = new int[rankings.length];
             if (bias.length() > 0) {
                 String[] biasSet = bias.split(",");
@@ -43,11 +45,15 @@ public class ParseUtil {
                     }
                 }
             }
-            students.add(new Student(line.get(args.getLastNameColumn()),
-                    line.get(args.getFirstNameColumn()),
-                    parseInt(line.get(args.getGradeColumn())),
-                    parseInt(line.get(args.getCourseColumn())), rankings,
-                    biases));
+            students.add(new Student(line.get(args.getLastNameColumn())
+                                         .trim(),
+                    line.get(args.getFirstNameColumn())
+                        .trim(),
+                    parseInt(line.get(args.getGradeColumn())
+                                 .trim()),
+                    parseInt(line.get(args.getCourseColumn())
+                                 .trim()),
+                    rankings, biases));
         }
         return students;
     }

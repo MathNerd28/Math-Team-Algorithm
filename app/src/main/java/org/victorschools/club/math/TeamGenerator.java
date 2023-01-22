@@ -46,9 +46,32 @@ public class TeamGenerator {
                 List<Student> best = new ArrayList<>(
                         students.subList(0, count));
                 List<Student> studentsCopy = new ArrayList<>(students);
-                studentsCopy.sort(Team.BIASES_FIRST);
                 recursive(studentsCopy, best, Long.MAX_VALUE, new ArrayList<>(),
                         0);
+                // Try every swap possible to see if it helps
+                List<Student> remaining = new ArrayList<>(studentsCopy);
+                remaining.removeAll(best);
+                long bestScore = scoringFunction.apply(best, studentsCopy);
+                outer: while (true) {
+                    for (int i = 0; i < best.size(); i++) {
+                        Student s1 = best.get(i);
+                        for (int j = 0; j < remaining.size(); j++) {
+                            Student s2 = remaining.get(j);
+                            best.set(i, s2);
+                            remaining.set(j, s1);
+                            long score = scoringFunction.apply(best,
+                                    studentsCopy);
+                            if (score < bestScore) {
+                                bestScore = score;
+                                continue outer;
+                            } else {
+                                remaining.set(j, s2);
+                            }
+                        }
+                        best.set(i, s1);
+                    }
+                    break;
+                }
                 return best;
             }
 
@@ -57,14 +80,14 @@ public class TeamGenerator {
                 if (team.size() >= best.size()) {
                     return checkIfBetter(remaining, best, team, bestScore);
                 } else {
-                    if (!isDecent(remaining, team, bestScore)) {
+                    if (!isDecent(remaining, team, bestScore, best.size())) {
                         return bestScore;
                     }
                     int max = remaining.size() - (best.size() - team.size());
                     for (int i = studentStart; i <= max; i++) {
                         team.add(remaining.remove(i));
-                        bestScore = recursive(remaining, best, bestScore,
-                                team, i);
+                        bestScore = recursive(remaining, best, bestScore, team,
+                                i);
                         remaining.add(i, team.remove(team.size() - 1));
                     }
                     return bestScore;
@@ -83,52 +106,84 @@ public class TeamGenerator {
             }
 
             private boolean isDecent(List<Student> remaining,
-                    List<Student> team, long bestScore) {
+                    List<Student> team, long bestScore, int studentCount) {
+                if ((team.size() << 1) <= studentCount) {
+                    return true;
+                }
                 long score = this.scoringFunction.apply(team, remaining);
-                return score <= bestScore;
+                return score < bestScore;
             }
 
+            @SuppressWarnings("java:S1488")
             public static Evaluate avoidRankingClashes(Arguments args) {
                 int catsPerStudent = args.getCategoriesPerStudent();
+                int catCount = args.getCategoryCount();
                 Evaluate proto = new Evaluate(
                         (List<Student> team, List<Student> remaining) -> {
-                            if (team.isEmpty()) {
-                                return 0L;
-                            }
-                            Team team1 = new Team(0, team, args);
-                            team1.assignOptimally();
-                            return team1.getScore();
+                            Team team2 = new Team(999, team, args);
+                            team2.fastAssign();
+                            return team2.getScore();
                         });
+
                 Evaluate working = new Evaluate(
                         (List<Student> team, List<Student> remaining) -> {
                             if (team.isEmpty()) {
                                 return 0L;
                             }
                             long score = 0;
-                            int[] counts = new int[team.get(0)
-                                                       .getRankings().length];
+
+                            int[] teamCounts = new int[catCount];
                             for (Student student : team) {
                                 int[] rankings = student.getRankings();
                                 for (int i = 0; i < rankings.length; i++) {
                                     if (rankings[i] <= catsPerStudent) {
-                                        counts[i]++;
+                                        teamCounts[i]++;
                                     }
                                 }
                             }
-                            for (int i = 0; i < counts.length; i++) {
-                                score += counts[i] * counts[i];
-                                counts[i] = 0;
+                            for (int i = 0; i < teamCounts.length; i++) {
+                                score += teamCounts[i] * teamCounts[i];
                             }
+                            int[] remainingCounts = new int[catCount];
                             for (Student student : remaining) {
                                 int[] rankings = student.getRankings();
                                 for (int i = 0; i < rankings.length; i++) {
                                     if (rankings[i] <= catsPerStudent) {
-                                        counts[i]++;
+                                        remainingCounts[i]++;
                                     }
                                 }
                             }
-                            for (int i = 0; i < counts.length; i++) {
-                                score += counts[i] * counts[i];
+                            for (int i = 0; i < teamCounts.length; i++) {
+                                score += remainingCounts[i]
+                                        * remainingCounts[i];
+                            }
+                            return score;
+                        });
+                Evaluate attempt = new Evaluate(
+                        (List<Student> team, List<Student> remaining) -> {
+                            int[] teamCounts = new int[catCount];
+                            for (Student student : team) {
+                                int[] rankings = student.getRankings();
+                                for (int i = 0; i < rankings.length; i++) {
+                                    if (rankings[i] <= catsPerStudent) {
+                                        teamCounts[i]++;
+                                    }
+                                }
+                            }
+                            int[] remainingCounts = new int[catCount];
+                            for (Student student : remaining) {
+                                int[] rankings = student.getRankings();
+                                for (int i = 0; i < rankings.length; i++) {
+                                    if (rankings[i] <= catsPerStudent) {
+                                        remainingCounts[i]++;
+                                    }
+                                }
+                            }
+                            long score = 0;
+                            for (int i = 0; i < teamCounts.length; i++) {
+                                score += Math.abs(teamCounts[i] * team.size()
+                                        - remainingCounts[i]
+                                                * remaining.size());
                             }
                             return score;
                         });

@@ -24,7 +24,8 @@ public class Main {
         System.out.println("\nAssigning categories...\n");
 
         for (Team team : teams) {
-            new Thread(team::assignOptimally).start();
+            Thread.ofPlatform()
+                  .start(team::assignOptimally);
             while (!team.isFinished()) {
                 printProgress(team);
                 try {
