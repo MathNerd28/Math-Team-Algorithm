@@ -33,6 +33,7 @@ public class Arguments implements Cloneable {
     private int studentsPerTeam        = STUDENTS_PER_TEAM;
     private int categoriesPerStudent   = CATS_PER_STUDENT;
     private int maxStudentsPerCategory = MAX_STUDENTS_PER_CATEGORY;
+    private int minStudentsPerCategory = 2;
     private int maxCatCountDifference  = MAX_CAT_COUNT_DIFF;
 
     private int scoreExpBase = SCORE_EXP_BASE;
@@ -156,6 +157,10 @@ public class Arguments implements Cloneable {
 
     public int getMaxStudentsPerCategory() {
         return this.maxStudentsPerCategory;
+    }
+
+    public int getMinStudentsPerCategory() {
+        return this.minStudentsPerCategory;
     }
 
     public long getScoreExpBase() {
